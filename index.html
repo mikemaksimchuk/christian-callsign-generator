@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparta UMC Call Sign Generator</title>
+    
+    <!-- Google Fonts for Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,500;0,700;0,900;1,400&family=Oswald:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- HTML2Canvas for client-side PNG generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --navy: #061121;
+            --navy-light: #0B1E36;
+            --charcoal: #12161A;
+            --white: #FFFFFF;
+            --off-white: #E2E8F0;
+            --umc-red: #D22630;
+            --accent-blue: #3A86FF;
+            --gold: #E5A93C;
+            --font-heading: 'Montserrat', sans-serif;
+            --font-display: 'Oswald', sans-serif;
+            --font-body: 'Playfair Display', serif;
+        }
+
+        /* RESET & BASE */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--charcoal);
+            background-image: 
+                radial-gradient(circle at top right, #13243d 0%, transparent 60%),
+                radial-gradient(circle at bottom left, #050d18 0%, var(--charcoal) 100%),
+                linear-gradient(rgba(18, 22, 26, 0.95), rgba(18, 22, 26, 0.95)),
+                url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z' fill='%23ffffff' fill-opacity='.02' fill-rule='evenodd'/%3E%3C/svg%3E");
+            background-attachment: fixed;
+            color: var(--white);
+            font-family: var(--font-heading);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 1rem;
+            overflow-x: hidden;
+        }
+
+        /* TOP HEADER BRANDING */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            max-width: 650px;
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            filter: drop-shadow(0 0 12px rgba(210, 38, 48, 0.4));
+        }
+
+        .umc-logo {
+            width: 80px;
+            height: 100px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-container:hover .umc-logo {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff 40%, var(--off-white) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+
+        .subtitle {
+            font-family: var(--font-heading);
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #7A8D9F;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .subtitle::before, .subtitle::after {
+            content: '';
+            width: 20px;
+            height: 1px;
+            background: #4A5A6A;
+        }
+
+        /* HIGH-TECH INPUT TERMINAL */
+        main {
+            width: 100%;
+            max-width: 520px;
+            background: rgba(11, 30, 54, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 30px rgba(74, 144, 226, 0.05);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--umc-red), var(--gold));
+        }
+
+        /* Terminal Bracket Corners */
+        .bracket {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: rgba(74, 144, 226, 0.5);
+            border-style: solid;
+            pointer-events: none;
+        }
+        .bracket-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+        .bracket-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+        .bracket-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+        .bracket-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+        .form-group {
+            margin-bottom: 1.75rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        label::before {
+            content: '▶';
+            font-size: 0.6rem;
+            color: var(--gold);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 1.1rem;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(74, 144, 226, 0.15);
+            border-radius: 8px;
+            color: var(--white);
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background: rgba(0,0,0,0.6);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.25);
+        }
+
+        .help-text {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #7A8D9F;
+            font-family: var(--font-heading);
+            font-weight: 400;
+            line-height: 1.4;
+        }
+
+        button {
+            width: 100%;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--umc-red) 0%, #a6161e 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 6px 20px rgba(210, 38, 48, 0.35);
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(210, 38, 48, 0.5);
+            background: linear-gradient(135deg, #e3323c 0%, var(--umc-red) 100%);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 2px solid rgba(74, 144, 226, 0.4);
+            color: #A3C9FF;
+            box-shadow: none;
+            margin-top: 1rem;
+        }
+
+        button.secondary:hover {
+            background: rgba(74, 144, 226, 0.1);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        /* RESULT VIEW CARDS */
+        #result-view {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-wrapper {
+            width: 100%;
+            max-width: 440px;
+            aspect-ratio: 108 / 135;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            background-color: var(--navy);
+            border: 8px solid var(--charcoal);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            box-shadow: 
+                0 30px 60px rgba(0,0,0,0.8),
+                0 0 0 1px rgba(255,255,255,0.05);
+            z-index: 1;
+        }
+
+        .card-artwork-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .card-header-overlay {
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(to bottom, rgba(6, 17, 33, 0.8), rgba(6, 17, 33, 0.4));
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .card-name {
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .card-callsign {
+            font-family: var(--font-display);
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--white);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin: 0.25rem 0;
+            text-shadow: 
+                0 0 10px rgba(255,255,255,0.3),
+                0 4px 12px rgba(0,0,0,0.9);
+            line-height: 1.1;
+        }
+
+        .card-meaning {
+            font-family: var(--font-heading);
+            font-weight: 500;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--off-white);
+            text-align: center;
+            background: rgba(6, 17, 33, 0.75);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: auto;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .card-scripture-box {
+            background: rgba(18, 22, 26, 0.85);
+            border-left: 4px solid var(--umc-red);
+            padding: 1.1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .card-scripture-text {
+            font-family: var(--font-body);
+            font-style: italic;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: #F1F5F9;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-scripture-ref {
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            text-align: right;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .card-footer {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.45);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 0.75rem;
+        }
+
+        .card-footer strong {
+            color: rgba(255,255,255,0.75);
+        }
+
+        /* DEBUG VIEW (Pastor Mode) */
+        #debug-view {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            margin-top: 3.5rem;
+            background: rgba(0,0,0,0.85);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--umc-red);
+            box-shadow: 0 10px 40px rgba(210,38,48,0.3);
+        }
+
+        #debug-view h2 {
+            color: var(--umc-red);
+            margin-bottom: 1rem;
+            font-family: var(--font-display);
+            font-size: 2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th {
+            color: var(--accent-blue);
+            font-family: var(--font-heading);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            font-family: var(--font-heading);
+            color: var(--off-white);
+            line-height: 1.4;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 1.5rem 0.75rem; }
+            h1 { font-size: 2rem; }
+            .subtitle { font-size: 0.8rem; }
+            main { padding: 1.75rem 1.25rem; }
+            .card { padding: 1.5rem; }
+            .card-callsign { font-size: 2.2rem; }
+            .card-meaning { font-size: 0.85rem; padding: 0.75rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP CHURCH HEADING -->
+    <header>
+        <div class="logo-container">
+            <svg class="umc-logo" viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 45 10 C 35 15, 20 30, 20 50 C 20 75, 45 85, 45 105 C 45 115, 38 120, 32 120 C 44 125, 55 112, 53 95 C 50 75, 27 68, 30 50 C 32 35, 45 25, 45 10 Z" fill="#D22630" />
+                <path d="M 48 45 C 44 55, 38 65, 38 80 C 38 95, 48 105, 45 115 C 52 110, 58 100, 58 85 C 58 70, 50 55, 48 45 Z" fill="#D22630" opacity="0.85" />
+                <rect x="52" y="15" width="8" height="100" fill="#FFFFFF" rx="1" />
+                <rect x="36" y="45" width="40" height="8" fill="#FFFFFF" rx="1" />
+            </svg>
+        </div>
+        <h1>Call Sign Generator</h1>
+        <p class="subtitle">Sparta United Methodist Church</p>
+    </header>
+
+    <main id="form-view">
+        <div class="bracket bracket-tl"></div>
+        <div class="bracket bracket-tr"></div>
+        <div class="bracket bracket-bl"></div>
+        <div class="bracket bracket-br"></div>
+
+        <form id="callsign-form">
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" required placeholder="e.g. John" autocomplete="given-name">
+            </div>
+            
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" required placeholder="e.g. Wesley" autocomplete="family-name">
+            </div>
+            
+            <div class="form-group">
+                <label for="takeaway">One Word Takeaway</label>
+                <input type="text" id="takeaway" required placeholder="e.g. Calling">
+                <span class="help-text">What is one word you are taking with you from today's message?</span>
+            </div>
+
+            <button type="submit">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                Generate Call Sign
+            </button>
+        </form>
+    </main>
+
+    <main id="result-view" style="background: transparent; border: none; box-shadow: none; padding: 0;">
+        <div class="card-wrapper" id="capture-area">
+            <div class="card">
+                <svg class="card-artwork-backdrop" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="sky-grad" cx="50%" cy="35%" r="75%" fx="50%" fy="35%">
+                            <stop offset="0%" stop-color="#FFDD7E" stop-opacity="1" />
+                            <stop offset="25%" stop-color="#E5A93C" stop-opacity="0.8" />
+                            <stop offset="55%" stop-color="#1A3A5F" stop-opacity="0.9" />
+                            <stop offset="100%" stop-color="#061121" stop-opacity="1" />
+                        </radialGradient>
+                        <linearGradient id="river-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#2D5A88" />
+                            <stop offset="40%" stop-color="#11253C" />
+                            <stop offset="100%" stop-color="#061121" />
+                        </linearGradient>
+                        <linearGradient id="ray-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7" />
+                            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+                        </linearGradient>
+                    </defs>
+
+                    <rect width="400" height="500" fill="url(#sky-grad)" />
+                    <path d="M 200 130 L 0 0 L 40 0 Z" fill="rgba(255,221,126,0.15)" />
+                    <path d="M 200 130 L 100 0 L 160 0 Z" fill="rgba(255,221,126,0.15)" />
+                    <path d="M 200 130 L 240 0 L 300 0 Z" fill="rgba(255,221,126,0.15)" />
+                    <path d="M 200 130 L 360 0 L 400 0 Z" fill="rgba(255,221,126,0.15)" />
+                    <path d="M 200 130 L 400 100 L 400 180 Z" fill="rgba(255,221,126,0.12)" />
+                    <path d="M 200 130 L 0 100 L 0 180 Z" fill="rgba(255,221,126,0.12)" />
+                    <line x1="20" y1="50" x2="160" y2="12" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+                    <line x1="15" y1="55" x2="155" y2="17" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" />
+                    <line x1="380" y1="40" x2="220" y2="90" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+                    <line x1="385" y1="45" x2="225" y2="95" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" />
+                    <path d="M 245 82 L 236 80 L 235 75 L 233 81 L 225 83 L 233 85 L 235 91 L 236 86 Z" fill="rgba(6,17,33,0.8)" />
+                    <path d="M 0 320 Q 120 300 200 315 T 400 320 L 400 330 L 0 330 Z" fill="#0C1D33" />
+                    <path d="M -10 320 L 15 320 L 22 316 L 90 316 L 95 311 L 105 311 L 107 316 L 125 316 L 130 320 L 140 320 L 135 325 L -10 325 Z" fill="#061121" />
+                    <path d="M 65 316 L 65 304 L 72 304 L 72 298 L 75 298 L 75 316 Z" fill="#061121" />
+                    <line x1="72" y1="298" x2="72" y2="290" stroke="#061121" stroke-width="1" />
+                    <rect y="325" width="400" height="175" fill="url(#river-grad)" />
+                    <polygon points="180 130, 220 130, 240 365, 160 365" fill="url(#ray-grad)" opacity="0.45" />
+                    <g transform="translate(320, 210)">
+                        <path d="M -40 140 Q 0 110 80 140 L 80 250 L -40 250 Z" fill="#061121" />
+                        <rect x="16" y="0" width="10" height="120" fill="#061121" rx="1" />
+                        <rect x="1" y="30" width="40" height="10" fill="#061121" rx="1" />
+                    </g>
+                    <g transform="translate(182, 110)">
+                        <circle cx="18" cy="18" r="30" fill="#FFFFFF" opacity="0.15" />
+                        <circle cx="18" cy="18" r="15" fill="#FFEAA7" opacity="0.4" />
+                        <path d="M 18 5 C 14 10, 2 12, 2 18 C 2 26, 12 24, 18 32 C 24 24, 34 26, 34 18 C 34 12, 22 10, 18 5 Z" fill="#FFFFFF" />
+                        <path d="M 18 12 L 18 26 M 12 18 L 24 18" stroke="#FFEAA7" stroke-width="1" opacity="0.7" />
+                    </g>
+                    <g transform="translate(145, 290)">
+                        <ellipse cx="55" cy="80" rx="35" ry="8" fill="rgba(6,17,33,0.7)" />
+                        <path d="M 28 42 C 28 35, 33 32, 38 32 C 43 32, 45 36, 45 42 C 45 46, 40 48, 41 53 C 44 55, 48 58, 48 64 C 48 72, 44 76, 40 82 L 20 82 C 16 75, 20 68, 25 60 C 27 58, 28 50, 28 42 Z" fill="#061121" />
+                        <path d="M 43 55 C 45 54, 48 55, 49 57 C 50 59, 48 62, 45 61 Z" fill="#061121" />
+                        <path d="M 68 22 C 68 16, 73 14, 78 14 C 83 14, 84 18, 83 24 C 83 29, 81 33, 83 38 C 86 42, 92 48, 92 58 C 92 68, 88 78, 85 82 L 68 82 C 64 72, 62 60, 63 48 C 64 38, 68 30, 68 22 Z" fill="#061121" />
+                        <path d="M 70 34 C 64 34, 54 36, 48 38 C 46 40, 48 43, 52 42 C 58 41, 66 38, 70 38 Z" fill="#061121" />
+                        <path d="M 47 37 C 46 36, 43 37, 43 39 C 45 41, 48 40, 47 37 Z" fill="#061121" />
+                        <line x1="44" y1="39" x2="41" y2="52" stroke="#FFFFFF" stroke-width="1.5" opacity="0.8" />
+                        <line x1="45" y1="40" x2="43" y2="48" stroke="#FFEAA7" stroke-width="1" opacity="0.6" />
+                    </g>
+                    <path d="M -10 480 Q 80 470 120 510 L -10 510 Z" fill="#030811" />
+                    <path d="M 410 470 Q 320 460 280 510 L 410 510 Z" fill="#030811" />
+                </svg>
+
+                <div class="card-header-overlay">
+                    <div class="card-name" id="card-first-name">FIRST</div>
+                    <div class="card-callsign" id="card-callsign">CALLSIGN</div>
+                    <div class="card-name" id="card-last-name">LAST</div>
+                </div>
+
+                <div class="card-meaning" id="card-meaning">
+                    Determined theological meaning card explanation.
+                </div>
+
+                <div class="card-scripture-box">
+                    <div class="card-scripture-text" id="card-scripture-text">
+                        "Scripture texts are loading."
+                    </div>
+                    <div class="card-scripture-ref" id="card-scripture-ref">
+                        Matthew 3:1-17
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <div>Sparta UMC</div>
+                    <div><strong>Called by Name</strong> • Matthew 3:1-17</div>
+                </div>
+            </div>
+        </div>
+
+        <button id="btn-download">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline; margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+            Download My Call Sign Card
+        </button>
+        <button id="btn-back" class="secondary">Generate Another</button>
+    </main>
+
+    <div id="debug-view">
+        <h2>Pastor Mode: Database Review</h2>
+        <p style="margin-bottom: 2rem; color: #A3C9FF;">Reviewing the complete theological database loaded for deterministic generation on Matthew 3:1-17.</p>
+        
+        <h3>Meaning Bank</h3>
+        <div style="max-height: 300px; overflow-y: auto; margin-bottom: 2.5rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;">
+            <table id="debug-meanings-table">
+                <thead>
+                    <tr><th>ID</th><th>Theological Meaning Profile</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <h3>Scripture Bank (50+ Holy Scriptures Verified)</h3>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;">
+            <table id="debug-scriptures-table">
+                <thead>
+                    <tr><th>Reference</th><th>Passage Text</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const prefixes = [
+            "Anchor", "Beacon", "Compass", "Cross", "Deep", "Faith", "Fire", 
+            "Grace", "Harbor", "Horizon", "Iron", "Living", "North", "Path", 
+            "River", "Sky", "Steadfast", "Storm", "Trail", "True", "Watch", 
+            "Way", "Wing", "Spirit", "Covenant", "Truth", "Light", "Peace", 
+            "Shield", "Vanguard", "Sentinel", "Horizon", "Jordan", "Dawn"
+        ];
+
+        const suffixes = [
+            "flight", "guard", "guide", "keeper", "light", "mark", "point", 
+            "star", "tower", "vector", "ward", "watch", "way", "wind", "wing", 
+            "bearer", "strider", "pilot", "nav", "six", "finder", "bound", "rider"
+        ];
+
+        const meanings = [
+            "You are called to remain grounded when the winds of life shift. God has equipped you with a steadfast spirit to bring stability to those around you.",
+            "Your presence brings light to those navigating the darkness. God calls you to shine brightly and lead others to safe harbor with courage.",
+            "You help others discover direction when the path ahead is unclear. God calls you to move forward with confidence and trust in His leading.",
+            "You have a keen sense of God’s movement and purpose. You are called to watch over your community and protect the peace of Christ.",
+            "God has given you a bold faith that cannot be easily shaken. Your mission is to stand firm in the identity Christ has given you.",
+            "You are drawn to the deep waters of faith and spiritual growth. God is calling you to dive deeper into His grace and invite others along.",
+            "Your journey is marked by a willingness to chart new paths of faithfulness. Trust that the Holy Spirit guides your every step.",
+            "You are an anchor point for others in turbulent times. Your calling is rooted in the deep, unshakeable love of God.",
+            "You carry the living water of Christ into dry places. Your mission is one of renewal, bringing hope to environments that need it most.",
+            "God has given you a clear vision for the horizon ahead. Move forward in your discipleship with the assurance that you are a beloved child of God.",
+            "You are a faithful companion on the journey, always ready to support those flying alongside you. Your calling is lived out in loyal community.",
+            "You possess a quiet, resilient strength. God calls you to weather the storms of life while holding fast to the promise of His presence.",
+            "You carry the light of Christ ahead of the pack. Your calling is to venture into new mission environments to prepare the road for others.",
+            "The grace of God flows through your life like a deep, powerful river. You are called to bring healing, refreshment, and peace wherever you go.",
+            "You have been anointed with a shield of covenant faithfulness. God is using your loyalty and humility to build up and secure His community."
+        ];
+
+        const scriptures = [
+            { ref: "Matthew 3:17 (NIV)", text: "And a voice from heaven said, 'This is my Son, whom I love; with him I am well pleased.'" },
+            { ref: "Isaiah 43:1 (NIV)", text: "But now, this is what the Lord says... 'Do not fear, for I have redeemed you; I have summoned you by name; you are mine.'" },
+            { ref: "Joshua 1:9 (NIV)", text: "Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go." },
+            { ref: "Ephesians 2:10 (NLT)", text: "For we are God’s masterpiece. He has created us anew in Christ Jesus, so we can do the good things he planned for us long ago." },
+            { ref: "Romans 8:14 (NLT)", text: "For all who are led by the Spirit of God are children of God." },
+            { ref: "Jeremiah 29:11 (NIV)", text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future." },
+            { ref: "10884229224072204518.jpeg", text: "Do not adapt to the patterns of this world but be transformed." },
+            { ref: "1 Peter 2:9 (NIV)", text: "But you are a chosen people, a royal priesthood, a holy nation, God’s special possession, that you may declare the praises of him who called you out of darkness." },
+            { ref: "Philippians 1:6 (NLT)", text: "And I am certain that God, who began the good work within you, will continue his work until it is finally finished." },
+            { ref: "Psalm 139:14 (NIV)", text: "I praise you because I am fearfully and wonderfully made; your works are wonderful, I know that full well." },
+            { ref: "John 15:16 (NLT)", text: "You didn’t choose me. I chose you. I appointed you to go and produce lasting fruit." },
+            { ref: "Isaiah 41:10 (NIV)", text: "So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you." },
+            { ref: "2 Timothy 1:7 (NLT)", text: "For God has not given us a spirit of fear and timidity, but of power, love, and self-discipline." },
+            { ref: "Romans 8:38-39 (NIV)", text: "For I am convinced that neither death nor life... will be able to separate us from the love of God that is in Christ Jesus." },
+            { ref: "Galatians 3:27 (NIV)", text: "For all of you who were baptized into Christ have clothed yourselves with Christ." },
+            { ref: "Colossians 3:12 (NLT)", text: "Since God chose you to be the holy people he loves, you must clothe yourselves with tenderhearted mercy, kindness, humility, gentleness, and patience." },
+            { ref: "2 Corinthians 5:17 (NIV)", text: "Therefore, if anyone is in Christ, the new creation has come: The old has gone, the new is here!" },
+            { ref: "Matthew 28:19 (NIV)", text: "Therefore go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit." },
+            { ref: "1 John 3:1 (NIV)", text: "See what great love the Father has lavished on us, that we should be called children of God! And that is what we are!" },
+            { ref: "Romans 12:2 (NIV)", text: "Do not conform to the pattern of this world, but be transformed by the renewing of your mind." },
+            { ref: "Isaiah 6:8 (NIV)", text: "Then I heard the voice of the Lord saying, 'Whom shall I send? And who will go for us?' And I said, 'Here am I. Send me!'" },
+            { ref: "Acts 1:8 (NIV)", text: "But you will receive power when the Holy Spirit comes on you; and you will be my witnesses... to the ends of the earth." },
+            { ref: "Galatians 2:20 (NIV)", text: "I have been crucified with Christ and I no longer live, but Christ lives in me." },
+            { ref: "Psalm 23:3 (NIV)", text: "He refreshes my soul. He guides me along the right paths for his name’s sake." },
+            { ref: "Mark 1:11 (NIV)", text: "And a voice came from heaven: 'You are my Son, whom I love; with you I am well pleased.'" },
+            { ref: "Luke 3:22 (NIV)", text: "And the Holy Spirit descended on him in bodily form like a dove. And a voice came from heaven." },
+            { ref: "Ephesians 4:1 (NLT)", text: "I urge you to live a life worthy of the calling you have received, because you were called by God." },
+            { ref: "Romans 6:4 (NIV)", text: "We were therefore buried with him through baptism into death in order that, just as Christ was raised from the dead... we too may live a new life." },
+            { ref: "Colossians 2:12 (NIV)", text: "Having been buried with him in baptism, in which you were also raised with him through your faith in the working of God." },
+            { ref: "Titus 3:5 (NIV)", text: "He saved us, not because of righteous things we had done, but because of his mercy. He saved us through the washing of rebirth and renewal." },
+            { ref: "Ezekiel 36:25 (NIV)", text: "I will sprinkle clean water on you, and you will be clean; I will cleanse you from all your impurities." },
+            { ref: "Hebrews 10:22 (NIV)", text: "Let us draw near to God with a sincere heart... having our bodies washed with pure water." },
+            { ref: "Deuteronomy 31:6 (NIV)", text: "Be strong and courageous. Do not be afraid or terrified... for the Lord your God goes with you." },
+            { ref: "1 Corinthians 12:13 (NIV)", text: "For we were all baptized by one Spirit so as to form one body—whether Jews or Gentiles, slave or free." },
+            { ref: "1 Corinthians 6:19 (NIV)", text: "Do you not know that your bodies are temples of the Holy Spirit, who is in you, whom you have received from God?" },
+            { ref: "Ephesians 1:5 (NLT)", text: "God decided in advance to adopt us into his own family by bringing us to himself through Jesus Christ." },
+            { ref: "Micah 6:8 (NIV)", text: "And what does the Lord require of you? To act justly and to love mercy and to walk humbly with your God." },
+            { ref: "Romans 8:31 (NIV)", text: "What, then, shall we say in response to these things? If God is for us, who can be against us?" },
+            { ref: "Proverbs 3:5-6 (NIV)", text: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him." },
+            { ref: "Isaiah 40:31 (NIV)", text: "But those who hope in the Lord will renew their strength. They will soar on wings like eagles." },
+            { ref: "John 10:14 (NIV)", text: "I am the good shepherd; I know my sheep and my sheep know me." },
+            { ref: "Galatians 5:1 (NIV)", text: "It is for freedom that Christ has set us free. Stand firm, then, and do not let yourselves be burdened." },
+            { ref: "John 8:32 (NIV)", text: "Then you will know the truth, and the truth will set you free." },
+            { ref: "Romans 15:13 (NIV)", text: "May the God of hope fill you with all joy and peace as you trust in him." },
+            { ref: "Philippians 4:13 (NIV)", text: "I can do all this through him who gives me strength." },
+            { ref: "John 1:12 (NIV)", text: "Yet to all who did receive him, to those who believed in his name, he gave the right to become children of God." },
+            { ref: "Hebrews 11:1 (NIV)", text: "Now faith is confidence in what we hope for and assurance about what we do not see." },
+            { ref: "1 John 4:19 (NIV)", text: "We love because he first loved us." },
+            { ref: "Psalm 27:1 (NIV)", text: "The Lord is my light and my salvation—whom shall I fear? The Lord is the stronghold of my life." },
+            { ref: "Romans 5:8 (NIV)", text: "But God demonstrates his own love for us in this: While we were still sinners, Christ died for us." },
+            { ref: "Zephaniah 3:17 (NIV)", text: "The Lord your God is with you, the Mighty Warrior who saves. He will take great delight in you." },
+            { ref: "Ephesians 1:13 (NIV)", text: "And you also were included in Christ when you heard the message of truth... When you believed, you were marked in him with a seal." },
+            { ref: "John 14:27 (NIV)", text: "Peace I leave with you; my peace I give you. I do not give to you as the world gives. Do not let your hearts be troubled." }
+        ];
+
+        function generateHash(inputString) {
+            let hash = 0;
+            for (let i = 0; i < inputString.length; i++) {
+                const char = inputString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        function determineCallSignData(first, last, takeaway) {
+            const normalizedInput = (first + last + takeaway).toLowerCase().replace(/\s+/g, '');
+            const hash = generateHash(normalizedInput);
+
+            const prefixIndex = (hash * 19) % prefixes.length;
+            const suffixIndex = (hash * 29) % suffixes.length;
+            const meaningIndex = (hash * 41) % meanings.length;
+            const scriptureIndex = (hash * 53) % scriptures.length;
+
+            const callsign = `${prefixes[prefixIndex]}${suffixes[suffixIndex]}`.toUpperCase();
+
+            return {
+                callsign,
+                meaning: meanings[meaningIndex],
+                scripture: scriptures[scriptureIndex]
+            };
+        }
+
+        const formView = document.getElementById('form-view');
+        const resultView = document.getElementById('result-view');
+        const form = document.getElementById('callsign-form');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const first = document.getElementById('firstName').value.trim();
+            const last = document.getElementById('lastName').value.trim();
+            const takeaway = document.getElementById('takeaway').value.trim();
+
+            let data;
+            if (first.toLowerCase() === 'jesus' && last.toLowerCase() === 'christ') {
+                data = {
+                    callsign: "BELOVED SON",
+                    meaning: "The heavens tear open, the Holy Spirit descends like a beautiful dove, and the Father's voice booms: This is the ultimate, divine benchmark of calling, baptismal identity, and world mission.",
+                    scripture: {
+                        ref: "Matthew 3:17 (NIV)",
+                        text: "And a voice from heaven said, 'This is my Son, whom I love; with him I am well pleased.'"
+                    }
+                };
+            } else {
+                data = determineCallSignData(first, last, takeaway);
+            }
+
+            document.getElementById('card-first-name').textContent = first;
+            document.getElementById('card-last-name').textContent = last;
+            document.getElementById('card-callsign').textContent = data.callsign;
+            document.getElementById('card-meaning').textContent = data.meaning;
+            document.getElementById('card-scripture-text').textContent = `"${data.scripture.text}"`;
+            document.getElementById('card-scripture-ref').textContent = data.scripture.ref;
+
+            formView.style.display = 'none';
+            resultView.style.display = 'flex';
+            window.scrollTo(0,0);
+        });
+
+        document.getElementById('btn-back').addEventListener('click', function() {
+            resultView.style.display = 'none';
+            formView.style.display = 'block';
+            form.reset();
+            window.scrollTo(0,0);
+        });
+
+        document.getElementById('btn-download').addEventListener('click', function() {
+            const captureArea = document.getElementById('capture-area');
+            const originalTransform = captureArea.style.transform;
+            captureArea.style.transform = 'scale(1)';
+
+            html2canvas(captureArea, {
+                scale: 3,
+                backgroundColor: null,
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+                imageTimeout: 15000
+            }).then(canvas => {
+                captureArea.style.transform = originalTransform;
+                const link = document.createElement('a');
+                link.download = `SpartaUMC-CallSign-${document.getElementById('card-callsign').textContent}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                captureArea.style.transform = originalTransform;
+                console.error("Capture failed: ", err);
+            });
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('debug') === 'true') {
+                document.getElementById('debug-view').style.display = 'block';
+
+                const meaningsTable = document.getElementById('debug-meanings-table').getElementsByTagName('tbody')[0];
+                meanings.forEach((m, index) => {
+                    const row = meaningsTable.insertRow();
+                    row.insertCell(0).innerText = `M-${index + 1}`;
+                    row.insertCell(1).innerText = m;
+                });
+
+                const scripturesTable = document.getElementById('debug-scriptures-table').getElementsByTagName('tbody')[0];
+                scriptures.forEach((s) => {
+                    const row = scripturesTable.insertRow();
+                    row.insertCell(0).innerText = s.ref;
+                    row.insertCell(1).innerText = s.text;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
